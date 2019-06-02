@@ -1,0 +1,440 @@
+#Importing All Required Libraries
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import os,shutil 
+import seaborn as sns
+
+#Setting the Grid and Font (For Plotting)
+
+sns.set(style="whitegrid")
+sns.set(font_scale=2.5)
+
+#Some Dependencies to add in the code due to Warning.
+
+pd.options.mode.chained_assignment = None  # default='warn'
+
+
+#Creating Directory for the Project Output.
+
+path = 'DS_Project_Output_16K_3762_GR2'
+if not os.path.exists(path):
+    os.makedirs(path)
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Standings')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Intermediate_Dataframes')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Season_Wise_Total_Goals')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Season_Wise_Trend_of_Home_Away_Goals')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Head_to_Head_Statistics\\\\Head_to_Head_Statistics_wrt_Goals')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Head_to_Head_Statistics\\Head_to_Head_Statistics_wrt_Results')
+    
+else:
+    shutil.rmtree(path)           #removes all the subdirectories!
+    os.makedirs(path)
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Standings')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Intermediate_Dataframes')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Season_Wise_Total_Goals')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Season_Wise_Trend_of_Home_Away_Goals')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Head_to_Head_Statistics\\\\Head_to_Head_Statistics_wrt_Goals')
+    os.makedirs('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Head_to_Head_Statistics\\Head_to_Head_Statistics_wrt_Results')
+    
+#Reading our main Dataset which is "Spanish_League_Dataset.csv" 
+#This dataset must be placed in the working directory.
+
+#Data Set with the football matches of the Spanish league of the 1st and 2nd division from the 1970-71 to 2017-18 season
+    
+main_dataset=pd.read_csv('Spanish_League_Dataset.csv')
+
+#Checking if data needs to be cleaned or it is already cleaned.
+
+# main_dataset.info()
+
+#Found out there are no null values or missing values. Moreover data can also not have any outliers because of the nature of the data.
+
+
+#Formatting Columns and Renaming them.
+
+main_dataset.rename(columns={'localGoals':'Home_Goals','visitorGoals':'Away_Goals','season':'Season','round':'MatchDay','localTeam':'home_team','visitorTeam':'away_team'},inplace=True)
+
+#Utility Functions
+
+def homeTeamWin(row):
+    if row['Home_Goals'] > row['Away_Goals']:
+        r = 1
+    else:
+        r = 0
+    return r
+
+
+def awayTeamWin(row):
+    if row['Home_Goals'] < row['Away_Goals']:
+        r = 1
+    else:
+        r = 0
+    return r
+
+def matchDrawn(row):
+    if row['Home_Goals'] == row['Away_Goals']:
+        r = 1
+    else:
+        r = 0
+    return r
+
+print("Please Wait. It may take few minutes to execute.")
+###################################### Standings for Spanish_League_1 STARTS  ######################################
+
+#Extracting only the Spanish league One Data from dataset which is actually the data in main_dataset.division=1
+#refers to Liga BBVA
+
+
+
+Spanish_League_1=main_dataset[main_dataset.division==1] #If we change Division==2 Then we will get analysis of Spanish League 2
+
+
+#Spanish_League_1 Analysis
+
+#Adding three more columns on the basis of home and away goals.
+
+#column 1
+Spanish_League_1['Home_Team_Win']=Spanish_League_1.apply(homeTeamWin,axis=1)
+#column 2
+Spanish_League_1['Away_Team_Win']=Spanish_League_1.apply(awayTeamWin,axis=1)
+#column 3
+Spanish_League_1['Match_Drawn']=Spanish_League_1.apply(matchDrawn,axis=1)
+
+Spanish_League_1['Result'] = 'Match Drawn'
+Spanish_League_1.loc[Spanish_League_1['Home_Goals'] > Spanish_League_1['Away_Goals'], 'Result'] = 'Home Team Win'
+Spanish_League_1.loc[Spanish_League_1['Away_Goals'] > Spanish_League_1['Home_Goals'], 'Result'] = 'Away Team Win'
+
+#exporting intermediate CSV file of Spanish League 1 for the better understanding of progress made so far.
+
+Spanish_League_1.to_csv('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Intermediate_Dataframes\\Spanish_League_1_dataframe_1.csv',header=True,index=False)
+
+#Hold the current dataframe in variable called "dataframe"
+dataframe=Spanish_League_1.copy()
+
+#Grouping the dataframe according to season,home_team and away_team.
+a=dataframe.groupby(['Season','home_team'])['Home_Team_Win'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Home_Team_Win': 'win'})
+b=dataframe.groupby(['Season','away_team'])['Away_Team_Win'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Away_Team_Win': 'win'})
+c=dataframe.groupby(['Season','home_team'])['Match_Drawn'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Match_Drawn': 'Match_Drawn'})
+d=dataframe.groupby(['Season','away_team'])['Match_Drawn'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Match_Drawn': 'Match_Drawn'})
+e=dataframe.groupby(['Season','home_team'])['Away_Team_Win'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Away_Team_Win': 'loss'})
+f=dataframe.groupby(['Season','away_team'])['Home_Team_Win'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Home_Team_Win': 'loss'})
+
+#A new dataframe which is used later to find out the Standings of each Season.
+
+Standings=a.merge(b,on=['Season','Football_Club']).merge(c,on=['Season','Football_Club']).merge(d,on=['Season','Football_Club']).merge(e,on=['Season','Football_Club']).merge(f,on=['Season','Football_Club'])
+
+#When .merge function is called it automatically append _x and _y with the columns in it.
+#in this case win_x , win_y and loss_x , loss_y and Match_Drawn_x , Match_Drawn_y
+
+#Formatting a new dataframe.
+Standings= Standings.rename(columns={'win_x':'Home_Wins','win_y':'Away_Wins','loss_x':'Home_Losses','loss_y':'Away_Losses'})
+
+#Generating Columns for total matches win,lost and drawn in that season by a particular team/club.
+
+Standings['Total_Matches_Win']= Standings.Home_Wins + Standings.Away_Wins
+
+Standings['Total_Matches_Lost']= Standings.Home_Losses + Standings.Away_Losses
+
+Standings['Total_Matches_Drawn']= Standings.Match_Drawn_x + Standings.Match_Drawn_y
+
+#Calculating Total Matches played in that season by a particular team or club.
+
+Standings['total_matches']=Standings.Total_Matches_Win+Standings.Total_Matches_Lost+Standings.Total_Matches_Drawn
+
+#Calculating Points on the bases of wins and draw.
+# 3 points for a win
+# 1 point for a draw
+# 0 point for a loss
+
+Standings['Points']= ( Standings.Total_Matches_Win * 3 )+( Standings.Total_Matches_Drawn * 1 )+( Standings.Total_Matches_Lost * 0 )
+
+#exporting intermediate CSV file of standings for the better understanding of progress made so far.
+Standings.to_csv('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Intermediate_Dataframes\\Standings_dataframe_1.csv',header=True,index=False)
+# print(Standings)
+
+#In order to group the dataframe of goals according to home teams and away teams.
+a=dataframe.groupby(['Season','home_team'])['Home_Goals'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Home_Goals': 'home_goals'})
+b=dataframe.groupby(['Season','away_team'])['Away_Goals'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Away_Goals': 'away_goals'})
+c=dataframe.groupby(['Season','home_team'])['Away_Goals'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Away_Goals': 'Goals_Against'})
+d=dataframe.groupby(['Season','away_team'])['Home_Goals'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Home_Goals': 'Goals_Against'})
+
+
+#When .merge function is called it automatically append _x and _y with the columns in it.
+#in this case Goals_Against_x , Goals_Against_y and loss_x , loss_y and Match_Drawn_x , Match_Drawn_y
+
+Standings=Standings.merge(a,on=['Season','Football_Club']).merge(b,on=['Season','Football_Club']).merge(c,on=['Season','Football_Club']).merge(d,on=['Season','Football_Club'])
+
+#calculating goals for , goals against and goal difference of a particular team season-wise.
+
+Standings['Goals_for']= ( Standings.home_goals ) + ( Standings.away_goals )
+
+Standings['Goals_Against']= ( Standings.Goals_Against_x ) + ( Standings.Goals_Against_y )
+
+Standings['Goal_Difference']= ( Standings.Goals_for) - ( Standings.Goals_Against )
+
+
+#exporting another intermediate CSV file of standings for the better understanding of progress made so far.
+
+Standings.to_csv('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Intermediate_Dataframes\\Standings_dataframe_2.csv',header=True,index=False)
+
+#Sort values according to Points and goal difference Season Wise.
+
+Standings= Standings.sort_values(by=['Season','Points','Goal_Difference']).reset_index().drop('index',axis=1)
+
+
+
+#For Loop which export a season-wise Standings Table and Season wise Goals and etc..
+
+#---------------------- COMMENT FROM HERE IF YOU DONT WANT TO EXPORT these Files ----------------------
+
+for counter, df in Standings.groupby('Season'):
+    
+    df.sort_values(by=['Points'], inplace=True, ascending=False)
+    
+    #Plotting Goals (Home and Away) Scored by A Club in a Season for Every Team
+    
+    plot1=df.plot(x='Football_Club',y=['home_goals','away_goals','Goals_for'], kind="bar",figsize=(40,20))
+    plt.tick_params(axis='x', labelsize=18)
+    plt.tick_params(axis='y', labelsize=18)
+    plt.xlabel('Football team')
+    plt.ylabel('Goals')
+    plt.title('Goals (Home and Away) Scored by A Club in a Season')
+    plot1.title.set_size(70)
+    fig = plot1.get_figure()
+    fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Season_Wise_Total_Goals\\Home_Away_Total_Goals_Scored_in_Season_{}.png".format(counter))
+    plt.close(fig)
+    
+    #Plotting Trend of Home and Away Goals in a Season for Every Team
+    
+    plot2=df.plot(x='Football_Club', y=['home_goals', 'away_goals'], figsize=(40,20), grid=True)
+    plt.xticks(np.arange(len(df['Football_Club'])), df['Football_Club'])
+    plt.tick_params(axis='x', labelsize=18)
+    plt.tick_params(axis='y', labelsize=18)
+    plt.xlabel('Football Team')
+    plt.ylabel('Goals')
+    plt.title('Trend of Home and Away Goals')
+    plot2.title.set_size(70)
+    fig = plot2.get_figure()
+    fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Season_Wise_Trend_of_Home_Away_Goals\\Home_Away_Goal_Trend_in_Season_{}.png".format(counter))
+    plt.close(fig)
+    
+    #Exporting Standings.csv files for all seasons.
+    
+    df.to_csv('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Standings\\Season_{}.csv'.format(counter), header=True, index=False)
+    
+    #For LOOPS ENDS
+    
+#-------------------------------------------- COMMENT TILL HERE --------------------------------------------
+    
+Standings.to_csv('DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Intermediate_Dataframes\\Standings_dataframe_3.csv',header=True,index=False)
+
+###################################### Standings for Spanish_League_1 ENDS  ######################################
+
+#---------------------- COMMENT FROM HERE IF YOU DONT WANT TO EXPORT these Files ----------------------
+
+#Plotting Overall Trend of Home and Away Goals (All Seasons)
+
+plot3=Standings.plot(x='Season', y=['home_goals', 'away_goals'], figsize=(40,13), grid=True)
+plt.tick_params(axis='x', labelsize=18)
+plt.tick_params(axis='y', labelsize=18)
+plt.ylabel('Goals')
+plt.title("Overall Trend of Home and Away Goals (All Seasons)")
+plot3.title.set_size(80)
+fig = plot3.get_figure()
+fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats\\Home_Away_Goal_Trend_in_all_seasons.png")
+plt.close(fig)
+
+#Plotting Maximum Points Earned by the club in all seasons
+
+plot4=Standings.groupby(['Football_Club'])['Points'].max().sort_values(ascending=False).plot(kind='bar', figsize=(35,22))
+plt.tick_params(axis='x', labelsize=18)
+plt.tick_params(axis='y', labelsize=18)
+plt.xlabel('Football team')
+plt.ylabel('Points')
+plt.title("Maximum Points Earned by the club in all seasons")
+plot4.title.set_size(70)
+fig = plot4.get_figure()
+fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats\\Max_Points_Club_Wise_in_all_seasons.png")
+plt.close(fig)
+
+#Plotting Team with Highest Wins in Laliga across All Seasons
+
+plot5=Standings.groupby(['Football_Club'])['Total_Matches_Win'].sum().sort_values().plot(kind='barh', figsize=(35,22))
+plt.tick_params(axis='x', labelsize=18)
+plt.tick_params(axis='y', labelsize=18)
+plt.xlabel('Matches_Won')
+plt.ylabel('Football Team')
+plt.title("Team with Highest Wins in Laliga across All Seasons")
+plot5.title.set_size(70)
+for i, v in enumerate(Standings.groupby(['Football_Club'])['Total_Matches_Win'].sum().sort_values()):
+    plt.text(v, i ," "+str(v), va='center',fontsize=20, fontweight='bold')
+fig = plot5.get_figure()
+fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats\\Matches_Won_in_all_seasons.png")
+plt.close(fig)
+
+#Plotting Top 20 Team with Numbers of Laliga BBVA they Played
+
+plot6=Standings.Football_Club.value_counts().head(20).plot(kind='pie', autopct='%2.1f%%',figsize=(35,22),shadow=True)
+plt.tick_params(axis='x', labelsize=18)
+plt.tick_params(axis='y', labelsize=18)
+plt.title("Top 20 Team with Numbers of Laliga BBVA they Played")
+plot6.title.set_size(70)
+fig = plot6.get_figure()
+fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats\\Top_20_Teams_Played_Laliga_PIE.png")
+plt.close(fig)
+
+#Plotting Teams with Numbers of Laliga BBVA they Played
+
+plot7=Standings.Football_Club.value_counts().head(20).plot(kind='bar', figsize=(35,22))
+plt.tick_params(axis='x', labelsize=18)
+plt.tick_params(axis='y', labelsize=18)
+plt.xlabel('Football Club')
+plt.ylabel('Number of Laliga Played')
+plt.title("Teams with Numbers of Laliga BBVA they Played")
+plot7.title.set_size(80)
+fig = plot7.get_figure()
+fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats\\Teams_Played_Laliga_BAR.png")
+plt.close(fig)
+
+#Plotting Percentage Showing Which team Won in a Laliga BBVA match
+
+plot8=Spanish_League_1.groupby('Result')['Result'].count().plot(kind='pie', autopct='%2.1f%%',figsize=(35,22),shadow=True)
+plt.tick_params(axis='x', labelsize=18)
+plt.tick_params(axis='y', labelsize=18)
+plt.title("Percentage Showing Which team Won in a Laliga BBVA match")
+plot8.title.set_size(70)
+fig = plot8.get_figure()
+fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats\\Matches_Result_PIE.png")
+plt.close(fig)
+
+#Plotting Average Goals across All seasons
+
+Average_Goals = Standings.groupby('Season')['Goals_for'].mean().reset_index()
+Average_Goals['Season'] = Average_Goals['Season'].map(lambda s: int(s[:4]))
+plt.figure(figsize=(35, 22))
+plot9=sns.regplot(x='Season', y='Goals_for', data=Average_Goals, color='black', marker='+', scatter_kws={'s': 250})
+plt.tick_params(axis='x', labelsize=25)
+plt.tick_params(axis='y', labelsize=25)
+plt.xlabel('Seasons')
+plt.ylabel('Goals')
+plt.title("Average Goals across All seasons")
+plot9.title.set_size(80)
+fig = plot9.get_figure()
+fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\All_Seasons_Combined_Stats\\Average_Goals_Across_All_Seasons.png")
+plt.close(fig)
+
+#-------------------------------------------- COMMENT TILL HERE --------------------------------------------
+
+###################################### HEAD TO HEAD for Spanish_League_1 STARTS ######################################
+
+#---------------------- COMMENT FROM HERE IF YOU DONT WANT TO EXPORT these Files ----------------------
+
+#Clubs is numpy array which contains names of all clubs in the league.
+
+my_team='Barcelona' #Change Team Name Here.
+
+clubs=Standings.Football_Club.unique()
+clubs=list(clubs)
+
+occ=clubs.count(my_team)
+
+if(occ<=0):
+    print("The team you Entered doesn't Exsits in Spanish League.")
+    print("Please Select one of the specified teams for head to head Statistics with other teams.")
+    print(clubs)
+else:
+    clubs.remove(my_team) #delete my_team from the list
+    #A new Dataframe which contains all the rows sums up which has same home team and away team column value.
+
+    dff=Spanish_League_1.groupby(['home_team','away_team']).sum().reset_index()
+
+    #For Loop for each club to find head to head with.
+
+    for cl in clubs:
+
+        h2h=None
+        df=dff.loc[(dff['home_team'] == my_team) & (dff['away_team'] == cl) | (dff['away_team'] == my_team) & (dff['home_team'] == cl)]
+        a=df.groupby(['home_team'])['Home_Team_Win'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Home_Team_Win': 'win'})
+        b=df.groupby(['away_team'])['Away_Team_Win'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Away_Team_Win': 'win'})
+        c=df.groupby(['home_team'])['Match_Drawn'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Match_Drawn': 'Match_Drawn'})
+        d=df.groupby(['away_team'])['Match_Drawn'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Match_Drawn': 'Match_Drawn'})
+        e=df.groupby(['home_team'])['Away_Team_Win'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Away_Team_Win': 'loss'})
+        f=df.groupby(['away_team'])['Home_Team_Win'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Home_Team_Win': 'loss'})
+        h2h=a.merge(b,on=['Football_Club']).merge(c,on=['Football_Club']).merge(d,on=['Football_Club']).merge(e,on=['Football_Club']).merge(f,on=['Football_Club'])
+
+        #When .merge function is called it automatically append _x and _y with the columns in it.
+        #in this case win_x , win_y and loss_x , loss_y and Match_Drawn_x , Match_Drawn_y
+
+        #Formatting a new dataframe.
+        h2h= h2h.rename(columns={'win_x':'Home_Wins','win_y':'Away_Wins','loss_x':'Home_Losses','loss_y':'Away_Losses'})
+
+        h2h['Total_Matches_Win']= h2h.Home_Wins + h2h.Away_Wins
+
+        h2h['Total_Matches_Lost']= h2h.Home_Losses + h2h.Away_Losses
+
+        h2h['Total_Matches_Drawn']= h2h.Match_Drawn_x + h2h.Match_Drawn_y
+
+        #Calculating Total Matches played in that season by a particular team or club.
+
+        h2h['total_matches']=h2h.Total_Matches_Win+h2h.Total_Matches_Lost+h2h.Total_Matches_Drawn
+
+        #In order to group the dataframe of goals according to home teams and away teams.
+        a=df.groupby(['home_team'])['Home_Goals'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Home_Goals': 'home_goals'})
+        b=df.groupby(['away_team'])['Away_Goals'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Away_Goals': 'away_goals'})
+        c=df.groupby(['home_team'])['Away_Goals'].sum().reset_index().rename(columns={'home_team': 'Football_Club','Away_Goals': 'Goals_Against'})
+        d=df.groupby(['away_team'])['Home_Goals'].sum().reset_index().rename(columns={'away_team': 'Football_Club','Home_Goals': 'Goals_Against'})
+
+
+        #When .merge function is called it automatically append _x and _y with the columns in it.
+        #in this case Goals_Against_x , Goals_Against_y and loss_x , loss_y and Match_Drawn_x , Match_Drawn_y
+
+        h2h=h2h.merge(a,on=['Football_Club']).merge(b,on=['Football_Club']).merge(c,on=['Football_Club']).merge(d,on=['Football_Club'])
+
+        #calculating goals for , goals against and goal difference of a particular team season-wise.
+
+        h2h['Goals_for']= ( h2h.home_goals ) + ( h2h.away_goals )
+
+        h2h['Goals_Against']= ( h2h.Goals_Against_x ) + ( h2h.Goals_Against_y )
+
+        h2h['Goal_Difference']= ( h2h.Goals_for) - ( h2h.Goals_Against )
+
+
+        #Plotting Head to Head Statistics with respect to Results.
+
+        plot10=h2h.plot(x='Football_Club', y=['Home_Wins', 'Away_Wins','Total_Matches_Win','Home_Losses', 'Away_Losses','Total_Matches_Lost'], kind="bar",figsize=(40,13), grid=True,fontsize=35)
+        plt.tick_params(axis='x', labelsize=25)
+        plt.tick_params(axis='y', labelsize=25)
+        plt.xlabel('Football Club')
+        plt.ylabel('Wins')
+        plt.title("Head to Head Statistics of {} and {}  wrt to Results.".format(my_team,cl))
+        plot10.title.set_size(80)
+        fig = plot10.get_figure()
+        fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Head_To_Head_Statistics\\Head_to_Head_Statistics_wrt_Results\\{}_and_{}.png".format(cl,my_team))
+        plt.close(fig)
+
+         #Plotting Head to Head Statistics with respect to Goals.
+
+        plot11=h2h.plot(x='Football_Club', y=['home_goals', 'away_goals','Goals_for', 'Goals_Against','Goal_Difference'], kind="bar",figsize=(40,13), grid=True,fontsize=35)
+        plt.tick_params(axis='x', labelsize=25)
+        plt.tick_params(axis='y', labelsize=25)
+        plt.xlabel('Football Club')
+        plt.ylabel('Goals')
+        plt.title("Head to Head Statistics of {} and {}  wrt to Goals.".format(my_team,cl))
+        plot11.title.set_size(80)
+        fig = plot11.get_figure()
+        fig.savefig("DS_Project_Output_16K_3762_GR2\\Spanish_League_1_Analysis\\Figures\\Head_To_Head_Statistics\\Head_to_Head_Statistics_wrt_Goals\\{}_and_{}.png".format(cl,my_team))
+        plt.close(fig)
+
+
+    #-------------------------------------------- COMMENT TILL HERE --------------------------------------------  
+
+    ##################################### HEAD TO HEAD for Spanish_League_1 ENDS ###################################### 
+    
+
+print('Program Ended Gracefully.')
